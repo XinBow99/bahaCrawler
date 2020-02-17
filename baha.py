@@ -11,13 +11,13 @@ from bs4.element import ResultSet,Tag
 class bahaInfo:
     def __init__(self):
         self.keyWordList = ['星爆']
-        self.word = ""
+        self.word = ''
         self.parser = 'html.parser'
         self.mainUrl = "https://forum.gamer.com.tw/"
         self.bsn = "60076"
         self.download = True#下載圖片
-        self.pageDelay = 10#一頁停10秒
-        self.innerDelay = 3#文章內每頁停3秒
+        self.pageDelay = 0#一頁停10秒
+        self.innerDelay = 0#文章內每頁停3秒
 
     def search(self):
         """搜尋"""
@@ -115,6 +115,7 @@ class bahaInfo:
         pageBtn = self.checkNone(bs(master, self.parser).select("p.BH-pagebtnA"),False)
         pageNum = self.checkNone(bs(str(pageBtn), self.parser).select('a'),getDatalen = -1)
         print("[INFO]「{}」共有{}頁".format(title,pageNum))
+        pictures = []
         for page in range(1,int(pageNum) + 1):
             print("[INFO]「{}」的第{}頁".format(title,page))
             result = requests.get(self.mainUrl + newUrl + "&page={}".format(page))
@@ -153,15 +154,13 @@ class bahaInfo:
                 mainContent = bs(body, self.parser).select("div.c-article__content")
                 content = self.checkNone(mainContent, True)
                 picturesLinks = bs(str(self.checkNone(mainContent, False)), self.parser).select("a.photoswipe-image")
-                pictures = []
+                this_picture = []
                 if picturesLinks:
                     for picture in picturesLinks:
                         if picture["href"]:
-                            pictures.append(picture["href"])
+                            this_picture.append(picture["href"])
+                    pictures += this_picture
                 #------------footer------------
-                if len(pictures) > 0:
-                    if self.download:
-                        downloadImage.download(title,postId,pictures)
                 comments = self.commentList(postId)
 
                 this_Section = {
@@ -181,10 +180,10 @@ class bahaInfo:
                     'comments':comments
                 }
                 sectionsItems.append(this_Section)
-            print("[INFO]請等待{}秒...".format(self.innerDelay))
             time.sleep(self.innerDelay)
-            print("[INFO]ㄚㄚㄚ太快了")
             self.page_items[-1].update({'detail':sectionsItems})
+        if len(pictures)>0:
+            downloadImage.download(title,self.page_items[-1]['snA'],pictures,self.word)
     def commentList(self, id):
         result = str(requests.get('{}/ajax/moreCommend.php?bsn={}&snB={}&returnHtml=0'.format(self.mainUrl, self.bsn, id)).text)
         result = json.loads(result)

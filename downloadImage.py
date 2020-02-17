@@ -2,9 +2,10 @@ import requests
 import os
 
 
-def download(title,postId, datas):
-    title = title.replace('.','').replace('|','').replace('?','').replace('!','').replace('..','').replace('...','')
-    folder_path = './bahaImage/' + title
+def download(title, postId, datas, word):
+    title = title.replace('.', '').replace('|', '').replace('?', '').replace(
+        '!', '').replace('..', '').replace('...', '').replace('\\', '').replace('/', '')
+    folder_path = './bahaImage/' + word +'/'+ title
 
     if (os.path.exists(folder_path) == False):  # 判斷主資料夾是否存在
         os.makedirs(folder_path)  # Create folder
@@ -21,8 +22,8 @@ def download(title,postId, datas):
             file.write(image.content)
             file.flush()
         file.close()  # close file
-        print("目前：第 {} 張照片，剩餘 {} 張需要下載".format(
-            i + 1, len(datas) - i - 1))
+        print("目前：第 {} 張照片，進度{}%".format(
+            i + 1, int((i + 1) / len(datas) * 100)))
     print(("---------------\n"
-               "{}-圖片下載完成\n"
-               "準備下載下一張...").format(title))
+           "{}-圖片下載完成\n"
+           "準備下載下一張...").format(title))
