@@ -22,8 +22,7 @@ def download(title, postId, datas, word):
             file.write(image.content)
             file.flush()
         file.close()  # close file
-        print("目前：第 {} 張照片，進度{}%".format(
+        print("[Downloading]第 {} 張照片，進度{}%".format(
             i + 1, int((i + 1) / len(datas) * 100)))
-    print(("---------------\n"
-           "{}-圖片下載完成\n"
-           "準備下載下一張...").format(title))
+    print(("--------------------------\n"
+           "{}-圖片下載完成\n").format(title))

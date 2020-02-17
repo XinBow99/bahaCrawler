@@ -9,6 +9,9 @@ def export2Excel(data,name = "我幫你取"):
     with open('{}.json'.format(name),'w',encoding="utf-8") as opJsonAction:
         opJsonAction.write(json.dumps(data, ensure_ascii=False))
         opJsonAction.close()
+    for i,d in enumerate(data):
+        del data[i]['detail']
+        del data[i]['totalPictures']
     datas_df = pd.DataFrame(data)
     datas_df.to_excel("{}搜尋資訊.xlsx".format(name))
     print('D2E done!')

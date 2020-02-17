@@ -10,17 +10,21 @@ from bs4.element import ResultSet,Tag
 
 class bahaInfo:
     def __init__(self):
-        self.keyWordList = ['星爆']
+        self.funcname = ''
+        self.nowTitle = ''
         self.word = ''
-        self.parser = 'html.parser'
         self.mainUrl = "https://forum.gamer.com.tw/"
+        self.parser = 'html.parser'
+
+        self.keyWordList = ['培根'] 
         self.bsn = "60076"
         self.download = True#下載圖片
-        self.pageDelay = 0#一頁停10秒
-        self.innerDelay = 0#文章內每頁停3秒
+        self.pageDelay = 0#一頁停0秒
+        self.innerDelay = 0#文章內每頁停0秒
 
     def search(self):
         """搜尋"""
+        self.funcname = "search"
         for word in self.keyWordList:
             self.word = word
             print('[INFO]搜尋{}'.format(word))
@@ -28,10 +32,14 @@ class bahaInfo:
                 '{}B.php?bsn={}&qt=1&q={}'.format(self.mainUrl,self.bsn,word))
             if result.status_code == 200:
                 print('[INFO]「{}」搜尋成功，進入分析'.format(word))
-                self.analysis(result.text)
+                try:
+                    self.analysis(result.text)
+                except Exception as e:
+                    print("[{} ERROR]{}出現了錯誤:{}".format(self.funcname,self.nowTitle,e))
 
     def analysis(self, data):
         """分析頁數"""
+        self.funcname = "analysis"
         bahaContent = bs(data, self.parser)
         pageInfo = bahaContent.find('p', class_="BH-pagebtnA")
 
@@ -41,6 +49,7 @@ class bahaInfo:
         self.analysisPages()
 
     def analysisPages(self):
+        self.funcname = "analysisPages"
         maxPage = self.limitPage
         keyWord = self.word
         print("[INFO]共有{}頁".format(maxPage))
@@ -57,7 +66,8 @@ class bahaInfo:
         
 
     def singlePage(self, data):
-        for item in data:
+        self.funcname = 'singlePage'
+        for i,item in enumerate(data):
             summary = str(bs(str(item), self.parser).find('td' ,class_="b-list__summary"))
             #text
             subbsn = self.checkNone(bs(summary, self.parser).find('p' ,class_="b-list__summary__sort"))
@@ -74,38 +84,39 @@ class bahaInfo:
             #text
             number = self.checkNone(bs(count, self.parser).find('p', class_="b-list__count__number")).split('/')
             user = self.checkNone(bs(count, self.parser).find('p', class_="b-list__count__user"))
-            try:
-                eTime = str(bs(str(item), self.parser).find('td', class_="b-list__time"))
-                edittime = str(bs(eTime, self.parser).find('p', class_="b-list__time__edittime"))
-                forFloorAndEditTime = bs(edittime, self.parser).find('a')
-                tnum = self.checkNone(re.findall(r'tnum=(.*?)&',forFloorAndEditTime['href'])[0])
-                sna = self.checkNone(re.findall(r'snA=(.*?)&',forFloorAndEditTime['href'])[0])
-                euser = self.checkNone(bs(eTime, self.parser).find('p', class_="b-list__time__user"))
-                etime = self.checkNone(forFloorAndEditTime)
+
+            eTime = str(bs(str(item), self.parser).find('td', class_="b-list__time"))
+            edittime = str(bs(eTime, self.parser).find('p', class_="b-list__time__edittime"))
+            forFloorAndEditTime = bs(edittime, self.parser).find('a')
+            tnum = self.checkNone(re.findall(r'tnum=(.*?)&',forFloorAndEditTime['href'])[0])
+            sna = self.checkNone(re.findall(r'snA=(.*?)&',forFloorAndEditTime['href'])[0])
+            euser = self.checkNone(bs(eTime, self.parser).find('p', class_="b-list__time__user"))
+            etime = self.checkNone(forFloorAndEditTime)
                 
-                this_item = {
-                    'subbsn':subbsn,
-                    'snA':sna,
-                    'best':best,
-                    'title':title,
-                    'text':text,
-                    'gp':int(gp),
-                    'totalReplyCount':int(number[0].replace('k','000')),
-                    'engagement':int(number[1].replace('k','000')),
-                    'user':user,
-                    'floor':int(tnum.replace('k','000')),
-                    'lastUser':euser,
-                    'lastReplyTime':etime
-                }
-                self.page_items.append(this_item)
-                self.singleItem(title, forFloorAndEditTime['href'])
-                print("[INFO]請等待{}秒...".format(self.pageDelay))
-                time.sleep(self.pageDelay)
-                print("[INFO]星報氣流斬")
-            except Exception as e:
-                print("[ERROR]{}出現了錯誤:{}".format(title,e))
+            this_item = {
+                'subbsn':subbsn,
+                'snA':sna,
+                'best':best,
+                'title':title,
+                'text':text,
+                'gp':int(gp),
+                'totalReplyCount':int(number[0].replace('k','000')),
+                'engagement':int(number[1].replace('k','000')),
+                'user':user,
+                'floor':int(tnum.replace('k','000')),
+                'lastUser':euser,
+                'lastReplyTime':etime
+            }
+            self.nowTitle = title
+            print('[INFO]分析進度{}%'.format(int((i + 1)/len(data) * 100)))
+            self.page_items.append(this_item)
+            self.singleItem(title, forFloorAndEditTime['href'])
+            print("[INFO]請等待{}秒...".format(self.pageDelay))
+            time.sleep(self.pageDelay)
+            
                 
     def singleItem(self, title, url):
+        self.funcname = "singleItem"
         print("[INFO]分析「{}」回應".format(title))
         sectionsItems = []
         newUrl = url.replace('&last=1','')
@@ -176,25 +187,31 @@ class bahaInfo:
                     'getgp':gpNum,
                     'getbp':bpNum,
                     'content':content,
-                    'pictures':pictures,
+                    'pictures':this_picture,
                     'comments':comments
                 }
                 sectionsItems.append(this_Section)
             time.sleep(self.innerDelay)
+            self.page_items[-1].update({'totalPicturesNum':len(pictures)})
+            self.page_items[-1].update({'totalPictures':pictures})
+            self.page_items[-1].update({'contentLen':len(sectionsItems[0]['content'])})
             self.page_items[-1].update({'detail':sectionsItems})
         if len(pictures)>0:
             downloadImage.download(title,self.page_items[-1]['snA'],pictures,self.word)
     def commentList(self, id):
+        self.funcname = 'commentList'
         result = str(requests.get('{}/ajax/moreCommend.php?bsn={}&snB={}&returnHtml=0'.format(self.mainUrl, self.bsn, id)).text)
         result = json.loads(result)
         return result       
 
     def export(self):
+        self.funcname = 'export'
         data = self.page_items
         exportToExcel.showD2T(data)
         exportToExcel.export2Excel(data, self.word)
 
     def checkNone(self, data, formatThis = True, dictFormat='',TagText = True,getDatalen = 0):
+        self.funcname = 'checknone'
         if data:
             if type(data) == str:
                 data = data
