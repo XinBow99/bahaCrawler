@@ -103,7 +103,7 @@ class bahaInfo:
                 'totalReplyCount':int(number[0].replace('k','000')),
                 'engagement':int(number[1].replace('k','000')),
                 'user':user,
-                'floor':int(tnum.replace('k','000')),
+                'totalFloor':int(tnum.replace('k','000')),
                 'lastUser':euser,
                 'lastReplyTime':etime
             }
@@ -192,7 +192,8 @@ class bahaInfo:
                 }
                 sectionsItems.append(this_Section)
             time.sleep(self.innerDelay)
-        self.page_items[-1].update({'postDate':len(sectionsItems[0]['postTime'])})
+        
+        self.page_items[-1].update({'postDate':sectionsItems[0]['postTime']})
         self.page_items[-1].update({'totalPicturesNum':len(pictures)})
         self.page_items[-1].update({'totalPictures':pictures})
         self.page_items[-1].update({'contentLen':len(sectionsItems[0]['content'])})
