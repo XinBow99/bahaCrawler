@@ -18,7 +18,7 @@ class bahaInfo:
 
         self.keyWordList = ['培根'] 
         self.bsn = "60076"
-        self.download = True#下載圖片
+        self.download = False#下載圖片
         self.pageDelay = 0#一頁停0秒
         self.innerDelay = 0#文章內每頁停0秒
 
@@ -197,7 +197,7 @@ class bahaInfo:
         self.page_items[-1].update({'totalPictures':pictures})
         self.page_items[-1].update({'contentLen':len(sectionsItems[0]['content'])})
         self.page_items[-1].update({'detail':sectionsItems})
-        if len(pictures)>0:
+        if len(pictures)>0 and self.download:
             downloadImage.download(title,self.page_items[-1]['snA'],pictures,self.word)
     def commentList(self, id):
         self.funcname = 'commentList'
