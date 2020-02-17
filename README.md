@@ -26,5 +26,5 @@ self.innerDelay = 0  #Crawler post delay
 ## Download picture
 save path is ./bahaImage/[searchWord]/[postTitle]
 ## Excel and output
-json: ./[searchWord].json
-xlsx: ./[searchWord].xlsx
+#json: ./[searchWord].json
+#xlsx: ./[searchWord].xlsx
