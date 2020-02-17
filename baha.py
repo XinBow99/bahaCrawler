@@ -1,14 +1,18 @@
 import requests
 import re
+import json
 import exportToExcel
 from bs4 import BeautifulSoup as bs
+from bs4.element import ResultSet,Tag
 
 
 class bahaInfo:
     def __init__(self):
-        self.keyWordList = ['宵夜']
+        self.keyWordList = ['培根']
         self.word = ""
         self.parser = 'html.parser'
+        self.mainUrl = "https://forum.gamer.com.tw/"
+        self.bsn = "60076"
 
     def search(self):
         """搜尋"""
@@ -16,7 +20,7 @@ class bahaInfo:
             self.word = word
             print('[INFO]搜尋{}'.format(word))
             result = requests.get(
-                'https://forum.gamer.com.tw/B.php?bsn=60076&qt=1&q={}'.format(word))
+                '{}B.php?bsn={}&qt=1&q={}'.format(self.mainUrl,self.bsn,word))
             if result.status_code == 200:
                 print('[INFO]「{}」搜尋成功，進入分析'.format(word))
                 self.analysis(result.text)
@@ -38,7 +42,7 @@ class bahaInfo:
         self.page_items = []
         for page in range(1, int(maxPage) + 1):
             result = requests.get(
-                'https://forum.gamer.com.tw/B.php?page={}&bsn=60076&qt=1&q={}'.format(page, keyWord))
+                '{}B.php?page={}&bsn={}&qt=1&q={}'.format(self.mainUrl, page, self.bsn, keyWord))
             if result.status_code == 200:
                 print('[INFO]正在分析第{}頁'.format(page))
                 thisContent = bs(result.text, self.parser)
@@ -52,8 +56,8 @@ class bahaInfo:
             summary = str(bs(str(item), self.parser).find('td' ,class_="b-list__summary"))
             #text
             subbsn = self.checkNone(bs(summary, self.parser).find('p' ,class_="b-list__summary__sort"))
-            gp = self.checkNone(bs(summary, self.parser).find('span', class_="b-gp--normal"))
-            
+            gp = self.checkNone(bs(summary, self.parser).select("span.b-list__summary__gp.b-gp"))
+
             main = str(bs(str(item), self.parser).find('td', class_="b-list__main"))
             imglist = str(bs(main, self.parser).find('div', class_="imglist-text"))
             #text
@@ -69,16 +73,18 @@ class bahaInfo:
                 eTime = str(bs(str(item), self.parser).find('td', class_="b-list__time"))
                 edittime = str(bs(eTime, self.parser).find('p', class_="b-list__time__edittime"))
                 forFloorAndEditTime = bs(edittime, self.parser).find('a')
-                tnum = self.checkNone(re.findall(r'&tnum=(.*?)&',forFloorAndEditTime['href'])[0])
+                tnum = self.checkNone(re.findall(r'tnum=(.*?)&',forFloorAndEditTime['href'])[0])
+                sna = self.checkNone(re.findall(r'snA=(.*?)&',forFloorAndEditTime['href'])[0])
                 euser = self.checkNone(bs(eTime, self.parser).find('p', class_="b-list__time__user"))
                 etime = self.checkNone(forFloorAndEditTime)
-
+                
                 this_item = {
                     'subbsn':subbsn,
-                    'gp':int(gp.replace('k','000')),
+                    'snA':sna,
                     'best':best,
                     'title':title,
                     'text':text,
+                    'gp':gp,
                     'totalReplyCount':int(number[0].replace('k','000')),
                     'engagement':int(number[1].replace('k','000')),
                     'user':user,
@@ -87,22 +93,113 @@ class bahaInfo:
                     'lastReplyTime':etime
                 }
                 self.page_items.append(this_item)
-            except:
-                print("[ERROR]{}出現了錯誤".format(title))
+                self.singleItem(title, forFloorAndEditTime['href'])
+            except Exception as e:
+                print("[ERROR]{}出現了錯誤:{}".format(title,e))
                 
+    def singleItem(self, title, url):
+        print("[INFO]分析「{}」回應".format(title))
+        newUrl = url.replace('&last=1','')
+        result = requests.get(self.mainUrl + newUrl)
+        master = str(bs(str(result.text), self.parser).find('div' ,id="BH-master"))
+        
+        sections = bs(master, self.parser).find_all('section' ,id=re.compile(r"post_[0-9]+"))
+        for section in sections:
+            side = str(bs(str(section), self.parser).find('div' ,class_="c-section__side"))
+            userSide = str(bs(side, self.parser).find('div' ,class_="c-user__side"))
+            #------------Post------------
+            postId = self.checkNone(section['id'].replace('post_',''))
+            #------------user------------
+            userLv = self.checkNone(bs(userSide, self.parser).select("div.usericon.userlevel")).replace("LV.","")
+            userGp = self.checkNone(bs(userSide, self.parser).select("div.usericon.usergp"),False,'title')['title']
+            usercareer = self.checkNone(bs(userSide, self.parser).select("div.usericon.usercareer"), False,'title')['title']
+            userrace = self.checkNone(bs(userSide, self.parser).select("div.usericon.userrace"), False,'title')['title']
+
+            userhonor = bs(side, self.parser).find('div' ,class_="c-user__honor")
+            #text
+            userId = self.checkNone(userhonor, False, 'data-userid', False)['data-userid']
+
+            post = str(bs(str(section), self.parser).find('div' ,class_="c-section__main"))
+            header = str(bs(post, self.parser).find('div' ,class_="c-post__header"))
+            body = str(bs(post, self.parser).find('div' ,class_="c-post__body"))
+            #------------header------------
+            #text
+            floor = self.checkNone(bs(header, self.parser).select("a.floor"),False,'data-floor')['data-floor']
+            postip = self.checkNone(bs(header, self.parser).select("a.edittime.tippy-post-info"),False,'data-hideip')['data-hideip']
+            postTime = self.checkNone(bs(header, self.parser).select("a.edittime.tippy-post-info"),False,'data-mtime')['data-mtime']
+            #GP
+            gp = self.checkNone(bs(header, self.parser).select("span.postgp"),True)
+            gpNum = self.checkNone(re.findall(r'([0-9]+|-|爆|X|x)',gp)).replace('-','0')
+            #BP
+            bp = self.checkNone(bs(header, self.parser).select("span.postbp"),True)
+            bpNum = self.checkNone(re.findall(r'([0-9]+|-|爆|X|x)',bp)).replace('-','0')
+            #------------body------------
+            content = self.checkNone(bs(body, self.parser).select("div.c-article__content"),True)
+            #------------footer------------
+            comments = self.commentList(postId)
+
+            this_Section = {
+                'postId':postId,
+                'userId':userId,
+                'userLv':userLv,
+                'userGp':userGp,
+                'usercareer':usercareer,
+                'userrace':userrace,
+                'userfloor':floor,
+                'postip':postip,
+                'postTime':postTime,
+                'getgp':gpNum,
+                'getbp':bpNum,
+                'content':content,
+                'comments':comments
+            }
+
+            self.page_items[-1].update({'detail':this_Section})
+    def commentList(self, id):
+        result = str(requests.get('{}/ajax/moreCommend.php?bsn={}&snB={}&returnHtml=0'.format(self.mainUrl, self.bsn, id)).text)
+        result = json.loads(result)
+        return result       
+
     def export(self):
         data = self.page_items
         exportToExcel.showD2T(data)
         exportToExcel.export2Excel(data, self.word)
 
-    def checkNone(self, data):
+    def checkNone(self, data, formatThis = True, dictFormat='',TagText = True):
         if data:
             if type(data) == str:
                 data = data
+            elif  type(data) == int:
+                data = data
+            elif  type(data) == list:
+                data = data[0]
+            elif  type(data) == Tag:
+                if TagText:
+                    data = data.text.replace('\n','').replace('&#xE838;','')
+                else:
+                    data = data
+            elif  type(data) == ResultSet:
+                if formatThis:
+                    data = data[0].text.replace('\n','')
+                else:
+                    data = data[0]
             else:
                 data = data.text.replace('\n','').replace('&#xE838;','')
         else:
-            data = '0'
+            if  type(data) == ResultSet:
+                if dictFormat != '':
+                    data = {dictFormat:'0'}
+                else:
+                    data = '0'
+            elif  type(data) == Tag:
+                if dictFormat != '':
+                    data = {dictFormat:'0'}
+                else:
+                    data = '0'
+            elif  type(data) == list:
+                data = '0'
+            else:
+                data = '0'
         return data
 
 if __name__ == "__main__":
