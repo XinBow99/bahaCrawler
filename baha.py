@@ -1,7 +1,9 @@
 import requests
 import re
 import json
+import time
 import exportToExcel
+import downloadImage
 from bs4 import BeautifulSoup as bs
 from bs4.element import ResultSet,Tag
 
@@ -13,6 +15,7 @@ class bahaInfo:
         self.parser = 'html.parser'
         self.mainUrl = "https://forum.gamer.com.tw/"
         self.bsn = "60076"
+        self.download = True#下載圖片
 
     def search(self):
         """搜尋"""
@@ -94,68 +97,93 @@ class bahaInfo:
                 }
                 self.page_items.append(this_item)
                 self.singleItem(title, forFloorAndEditTime['href'])
+                print("[INFO]請等待十秒...")
+                time.sleep(10)
+                print("[INFO]星報氣流斬")
             except Exception as e:
                 print("[ERROR]{}出現了錯誤:{}".format(title,e))
                 
     def singleItem(self, title, url):
+        print(url)
         print("[INFO]分析「{}」回應".format(title))
         sectionsItems = []
         newUrl = url.replace('&last=1','')
+        #https://forum.gamer.com.tw/C.php?bsn=60076&snA=4749438&tnum=3986 self.mainUrl + newUrl
         result = requests.get(self.mainUrl + newUrl)
         master = str(bs(str(result.text), self.parser).find('div' ,id="BH-master"))
-        
-        sections = bs(master, self.parser).find_all('section' ,id=re.compile(r"post_[0-9]+"))
-        for section in sections:
-            side = str(bs(str(section), self.parser).find('div' ,class_="c-section__side"))
-            userSide = str(bs(side, self.parser).find('div' ,class_="c-user__side"))
-            #------------Post------------
-            postId = self.checkNone(section['id'].replace('post_',''))
-            #------------user------------
-            userLv = self.checkNone(bs(userSide, self.parser).select("div.usericon.userlevel")).replace("LV.","")
-            userGp = self.checkNone(bs(userSide, self.parser).select("div.usericon.usergp"),False,'title')['title']
-            usercareer = self.checkNone(bs(userSide, self.parser).select("div.usericon.usercareer"), False,'title')['title']
-            userrace = self.checkNone(bs(userSide, self.parser).select("div.usericon.userrace"), False,'title')['title']
+        pageBtn = self.checkNone(bs(master, self.parser).select("p.BH-pagebtnA"),False)
+        pageNum = self.checkNone(bs(str(pageBtn), self.parser).select('a'),getDatalen = -1)
+        print("[INFO]「{}」共有{}頁".format(title,pageNum))
+        for page in range(1,int(pageNum) + 1):
+            print("[INFO]「{}」的第{}頁".format(title,page))
+            result = requests.get(self.mainUrl + newUrl + "&page={}".format(page))
+            master = str(bs(str(result.text), self.parser).find('div' ,id="BH-master"))
+            sections = bs(master, self.parser).find_all('section' ,id=re.compile(r"post_[0-9]+"))
+            for section in sections:
+                side = str(bs(str(section), self.parser).find('div' ,class_="c-section__side"))
+                userSide = str(bs(side, self.parser).find('div' ,class_="c-user__side"))
+                #------------Post------------
+                postId = self.checkNone(section['id'].replace('post_',''))
+                #------------user------------
+                userLv = self.checkNone(bs(userSide, self.parser).select("div.usericon.userlevel")).replace("LV.","")
+                userGp = self.checkNone(bs(userSide, self.parser).select("div.usericon.usergp"),False,'title')['title']
+                usercareer = self.checkNone(bs(userSide, self.parser).select("div.usericon.usercareer"), False,'title')['title']
+                userrace = self.checkNone(bs(userSide, self.parser).select("div.usericon.userrace"), False,'title')['title']
 
-            userhonor = bs(side, self.parser).find('div' ,class_="c-user__honor")
-            #text
-            userId = self.checkNone(userhonor, False, 'data-userid', False)['data-userid']
+                userhonor = bs(side, self.parser).find('div' ,class_="c-user__honor")
+                #text
+                userId = self.checkNone(userhonor, False, 'data-userid', False)['data-userid']
 
-            post = str(bs(str(section), self.parser).find('div' ,class_="c-section__main"))
-            header = str(bs(post, self.parser).find('div' ,class_="c-post__header"))
-            body = str(bs(post, self.parser).find('div' ,class_="c-post__body"))
-            #------------header------------
-            #text
-            floor = self.checkNone(bs(header, self.parser).select("a.floor"),False,'data-floor')['data-floor']
-            postip = self.checkNone(bs(header, self.parser).select("a.edittime.tippy-post-info"),False,'data-hideip')['data-hideip']
-            postTime = self.checkNone(bs(header, self.parser).select("a.edittime.tippy-post-info"),False,'data-mtime')['data-mtime']
-            #GP
-            gp = self.checkNone(bs(header, self.parser).select("span.postgp"),True)
-            gpNum = self.checkNone(re.findall(r'([0-9]+|-|爆|X|x)',gp)).replace('-','0')
-            #BP
-            bp = self.checkNone(bs(header, self.parser).select("span.postbp"),True)
-            bpNum = self.checkNone(re.findall(r'([0-9]+|-|爆|X|x)',bp)).replace('-','0')
-            #------------body------------
-            content = self.checkNone(bs(body, self.parser).select("div.c-article__content"),True)
-            #------------footer------------
-            comments = self.commentList(postId)
+                post = str(bs(str(section), self.parser).find('div' ,class_="c-section__main"))
+                header = str(bs(post, self.parser).find('div' ,class_="c-post__header"))
+                body = str(bs(post, self.parser).find('div' ,class_="c-post__body"))
+                #------------header------------
+                #text
+                floor = self.checkNone(bs(header, self.parser).select("a.floor"),False,'data-floor')['data-floor']
+                postip = self.checkNone(bs(header, self.parser).select("a.edittime.tippy-post-info"),False,'data-hideip')['data-hideip']
+                postTime = self.checkNone(bs(header, self.parser).select("a.edittime.tippy-post-info"),False,'data-mtime')['data-mtime']
+                #GP
+                gp = self.checkNone(bs(header, self.parser).select("span.postgp"),True)
+                gpNum = self.checkNone(re.findall(r'([0-9]+|-|爆|X|x)',gp)).replace('-','0')
+                #BP
+                bp = self.checkNone(bs(header, self.parser).select("span.postbp"),True)
+                bpNum = self.checkNone(re.findall(r'([0-9]+|-|爆|X|x)',bp)).replace('-','0')
+                #------------body------------
+                mainContent = bs(body, self.parser).select("div.c-article__content")
+                content = self.checkNone(mainContent, True)
+                picturesLinks = bs(str(self.checkNone(mainContent, False)), self.parser).select("a.photoswipe-image")
+                pictures = []
+                if picturesLinks:
+                    for picture in picturesLinks:
+                        if picture["href"]:
+                            pictures.append(picture["href"])
+                #------------footer------------
+                if len(pictures) > 0:
+                    if self.download:
+                        downloadImage.download(title,postId,pictures)
+                comments = self.commentList(postId)
 
-            this_Section = {
-                'postId':postId,
-                'userId':userId,
-                'userLv':userLv,
-                'userGp':userGp,
-                'usercareer':usercareer,
-                'userrace':userrace,
-                'userfloor':floor,
-                'postip':postip,
-                'postTime':postTime,
-                'getgp':gpNum,
-                'getbp':bpNum,
-                'content':content,
-                'comments':comments
-            }
-            sectionsItems.append(this_Section)
-        self.page_items[-1].update({'detail':sectionsItems})
+                this_Section = {
+                    'postId':postId,
+                    'userId':userId,
+                    'userLv':userLv,
+                    'userGp':userGp,
+                    'usercareer':usercareer,
+                    'userrace':userrace,
+                    'userfloor':floor,
+                    'postip':postip,
+                    'postTime':postTime,
+                    'getgp':gpNum,
+                    'getbp':bpNum,
+                    'content':content,
+                    'pictures':pictures,
+                    'comments':comments
+                }
+                sectionsItems.append(this_Section)
+            print("[INFO]請等待一秒...")
+            time.sleep(1)
+            print("[INFO]ㄚㄚㄚ太快了")
+            self.page_items[-1].update({'detail':sectionsItems})
     def commentList(self, id):
         result = str(requests.get('{}/ajax/moreCommend.php?bsn={}&snB={}&returnHtml=0'.format(self.mainUrl, self.bsn, id)).text)
         result = json.loads(result)
@@ -166,14 +194,14 @@ class bahaInfo:
         exportToExcel.showD2T(data)
         exportToExcel.export2Excel(data, self.word)
 
-    def checkNone(self, data, formatThis = True, dictFormat='',TagText = True):
+    def checkNone(self, data, formatThis = True, dictFormat='',TagText = True,getDatalen = 0):
         if data:
             if type(data) == str:
                 data = data
             elif  type(data) == int:
                 data = data
             elif  type(data) == list:
-                data = data[0]
+                data = data[getDatalen]
             elif  type(data) == Tag:
                 if TagText:
                     data = data.text.replace('\n','').replace('&#xE838;','')
@@ -181,9 +209,9 @@ class bahaInfo:
                     data = data
             elif  type(data) == ResultSet:
                 if formatThis:
-                    data = data[0].text.replace('\n','')
+                    data = data[getDatalen].text.replace('\n','')
                 else:
-                    data = data[0]
+                    data = data[getDatalen]
             else:
                 data = data.text.replace('\n','').replace('&#xE838;','')
         else:
