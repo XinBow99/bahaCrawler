@@ -10,12 +10,14 @@ from bs4.element import ResultSet,Tag
 
 class bahaInfo:
     def __init__(self):
-        self.keyWordList = ['培根']
+        self.keyWordList = ['星爆']
         self.word = ""
         self.parser = 'html.parser'
         self.mainUrl = "https://forum.gamer.com.tw/"
         self.bsn = "60076"
         self.download = True#下載圖片
+        self.pageDelay = 10#一頁停10秒
+        self.innerDelay = 3#文章內每頁停3秒
 
     def search(self):
         """搜尋"""
@@ -97,14 +99,13 @@ class bahaInfo:
                 }
                 self.page_items.append(this_item)
                 self.singleItem(title, forFloorAndEditTime['href'])
-                print("[INFO]請等待十秒...")
-                time.sleep(10)
+                print("[INFO]請等待{}秒...".format(self.pageDelay))
+                time.sleep(self.pageDelay)
                 print("[INFO]星報氣流斬")
             except Exception as e:
                 print("[ERROR]{}出現了錯誤:{}".format(title,e))
                 
     def singleItem(self, title, url):
-        print(url)
         print("[INFO]分析「{}」回應".format(title))
         sectionsItems = []
         newUrl = url.replace('&last=1','')
@@ -180,8 +181,8 @@ class bahaInfo:
                     'comments':comments
                 }
                 sectionsItems.append(this_Section)
-            print("[INFO]請等待一秒...")
-            time.sleep(1)
+            print("[INFO]請等待{}秒...".format(self.innerDelay))
+            time.sleep(self.innerDelay)
             print("[INFO]ㄚㄚㄚ太快了")
             self.page_items[-1].update({'detail':sectionsItems})
     def commentList(self, id):
