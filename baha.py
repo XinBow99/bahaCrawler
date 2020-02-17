@@ -99,6 +99,7 @@ class bahaInfo:
                 
     def singleItem(self, title, url):
         print("[INFO]分析「{}」回應".format(title))
+        sectionsItems = []
         newUrl = url.replace('&last=1','')
         result = requests.get(self.mainUrl + newUrl)
         master = str(bs(str(result.text), self.parser).find('div' ,id="BH-master"))
@@ -153,8 +154,8 @@ class bahaInfo:
                 'content':content,
                 'comments':comments
             }
-
-            self.page_items[-1].update({'detail':this_Section})
+            sectionsItems.append(this_Section)
+        self.page_items[-1].update({'detail':sectionsItems})
     def commentList(self, id):
         result = str(requests.get('{}/ajax/moreCommend.php?bsn={}&snB={}&returnHtml=0'.format(self.mainUrl, self.bsn, id)).text)
         result = json.loads(result)
