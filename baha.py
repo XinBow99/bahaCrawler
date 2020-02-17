@@ -84,7 +84,7 @@ class bahaInfo:
                     'best':best,
                     'title':title,
                     'text':text,
-                    'gp':gp,
+                    'gp':int(gp),
                     'totalReplyCount':int(number[0].replace('k','000')),
                     'engagement':int(number[1].replace('k','000')),
                     'user':user,
