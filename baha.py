@@ -192,10 +192,11 @@ class bahaInfo:
                 }
                 sectionsItems.append(this_Section)
             time.sleep(self.innerDelay)
-            self.page_items[-1].update({'totalPicturesNum':len(pictures)})
-            self.page_items[-1].update({'totalPictures':pictures})
-            self.page_items[-1].update({'contentLen':len(sectionsItems[0]['content'])})
-            self.page_items[-1].update({'detail':sectionsItems})
+        self.page_items[-1].update({'postDate':len(sectionsItems[0]['postTime'])})
+        self.page_items[-1].update({'totalPicturesNum':len(pictures)})
+        self.page_items[-1].update({'totalPictures':pictures})
+        self.page_items[-1].update({'contentLen':len(sectionsItems[0]['content'])})
+        self.page_items[-1].update({'detail':sectionsItems})
         if len(pictures)>0:
             downloadImage.download(title,self.page_items[-1]['snA'],pictures,self.word)
     def commentList(self, id):
