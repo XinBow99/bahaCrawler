@@ -3,6 +3,7 @@ import os
 
 
 def download(title,postId, datas):
+    title = title.replace('.','').replace('|','').replace('?','').replace('!','').replace('..','').replace('...','')
     folder_path = './bahaImage/' + title
 
     if (os.path.exists(folder_path) == False):  # 判斷主資料夾是否存在
