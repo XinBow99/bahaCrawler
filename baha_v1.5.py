@@ -38,7 +38,7 @@ class bahaInfo:
         self.parser = 'html.parser'
         self.keyWordList = ['培根'] #搜尋字詞的資料夾名稱 可改可不改 我是懶得改
         self.bsn = "60076"
-        self.download = False#True的話會下載圖片
+        self.download = T#True的話會下載圖片
         self.pageDelay = 1#一頁停1秒
         self.innerDelay = 1#文章內每頁停1秒
 
