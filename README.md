@@ -10,6 +10,8 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install necessa
 pip install requests
 pip install pandas
 pip install openpyxl
+pip install selenium
+pip install bs4
 ```
 
 ## Usage
